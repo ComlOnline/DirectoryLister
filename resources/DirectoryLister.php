@@ -1,5 +1,5 @@
 <?php
-
+// $infotext = $this->_config['infotext_extension'];
 /**
  * A simple PHP based directory lister that lists the contents
  * of a directory and all it's sub-directories and allows easy
@@ -11,12 +11,12 @@
  * More info available at http://www.directorylister.com
  *
  * @author Chris Kankiewicz (http://www.chriskankiewicz.com)
- * @copyright 2017 Chris Kankiewicz
+ * @copyright 2015 Chris Kankiewicz
  */
 class DirectoryLister {
 
     // Define application version
-    const VERSION = '2.7.0';
+    const VERSION = '2.6.1';
 
     // Reserve some variables
     protected $_themeName     = null;
@@ -32,6 +32,13 @@ class DirectoryLister {
      * DirectoryLister construct function. Runs on object creation.
      */
     public function __construct() {
+
+        //Set default timezone
+        if( ! ini_get('date.timezone') )
+        {
+            date_default_timezone_set('Europe/Berlin');
+
+        }
 
         // Set class directory constant
         if(!defined('__DIR__')) {
@@ -53,10 +60,19 @@ class DirectoryLister {
         } else {
             die('ERROR: Missing application config file at ' . $configFile);
         }
-
+        // Load the downloads log file
+         $dLog = 'resources/stats/downloads.txt';
+        
+         // Set the downloads log file to a global variable
+  	    if (file_exists($dLog) && is_writable($dLog)) {
+             $this->_dLogFile = $dLog;
+ 		} else {
+             $this->setSystemMessage('error', '<b>ERROR:</b> Cannot find dLogFile!');
+  		}
+         
         // Set the file types array to a global variable
         $this->_fileTypes = require_once($this->_appDir . '/fileTypes.php');
-
+	$this->_infotext_extension = $this->_config['infotext_extension'];
         // Set the theme name
         $this->_themeName = $this->_config['theme_name'];
 
@@ -98,7 +114,7 @@ class DirectoryLister {
             $filename_no_ext = basename($directory);
 
             if ($directory == '.') {
-                $filename_no_ext = $this->_config['home_label'];
+                $filename_no_ext = 'Home';
             }
 
             // We deliver a zip file
@@ -194,18 +210,25 @@ class DirectoryLister {
         // Statically set the Home breadcrumb
         $breadcrumbsArray[] = array(
             'link' => $this->_appURL,
-            'text' => $this->_config['home_label']
+            'text' => 'Home'
         );
 
         // Generate breadcrumbs
-        $dirPath  = null;
-
         foreach ($dirArray as $key => $dir) {
 
             if ($dir != '.') {
 
+                $dirPath  = null;
+
                 // Build the directory path
-                $dirPath = is_null($dirPath) ? $dir : $dirPath . '/' .  $dir;
+                for ($i = 0; $i <= $key; $i++) {
+                    $dirPath = $dirPath . $dirArray[$i] . '/';
+                }
+
+                // Remove trailing slash
+                if(substr($dirPath, -1) == '/') {
+                    $dirPath = substr($dirPath, 0, -1);
+                }
 
                 // Combine the base path and dir path
                 $link = $this->_appURL . '?dir=' . rawurlencode($dirPath);
@@ -233,22 +256,16 @@ class DirectoryLister {
      */
     public function containsIndex($dirPath) {
 
-        // Check if links_dirs_with_index is enabled
-        if ($this->linksDirsWithIndex()) {
+        // Check if directory contains an index file
+        foreach ($this->_config['index_files'] as $indexFile) {
 
-            // Check if directory contains an index file
-            foreach ($this->_config['index_files'] as $indexFile) {
+            if (file_exists($dirPath . '/' . $indexFile)) {
 
-                if (file_exists($dirPath . '/' . $indexFile)) {
-
-                    return true;
-
-                }
+                return true;
 
             }
 
         }
-
 
         return false;
 
@@ -286,6 +303,10 @@ class DirectoryLister {
         return $this->_config['theme_name'];
     }
 
+    public function getInfotextExtension() {
+        // Return the theme name
+        return $this->_config['infotext_extension'];
+    }
 
     /**
      * Returns open links in another window
@@ -295,18 +316,6 @@ class DirectoryLister {
      */
     public function externalLinksNewWindow() {
         return $this->_config['external_links_new_window'];
-    }
-
-
-    /**
-     * Returns use real url for indexed directories
-     *
-     * @return boolean Returns true if in config is enabled links for directories with index, false if not
-     * @access public
-     */
-    public function linksDirsWithIndex()
-    {
-        return $this->_config['links_dirs_with_index'];
     }
 
 
@@ -473,7 +482,20 @@ class DirectoryLister {
 
         return true;
     }
-
+    /**
+      * Get total downloads count.
+      * 
+      * @return downloads number
+      * @access public
+      */	
+     public function getTotalDownloads() {
+         // Get fresh downloads count data
+         $dllog = $this->_read_dLog();
+ 
+         // Get total downloads count
+         $totaldls = array_sum($dllog);
+         return $totaldls;
+     }
 
     /**
      * Validates and returns the directory path
@@ -551,7 +573,9 @@ class DirectoryLister {
 
         // Get directory contents
         $files = scandir($directory);
-
+        // Get downloads count data
+         $dllog = $this->_read_dLog();
+ 
         // Read files/folders from the directory
         foreach ($files as $file) {
 
@@ -611,7 +635,8 @@ class DirectoryLister {
                             'file_path'  => $this->_appURL . $directoryPath,
                             'url_path'   => $this->_appURL . $directoryPath,
                             'file_size'  => '-',
-                            'mod_time'   => date($this->_config['date_format'], filemtime($realPath)),
+                            'file_downloads' => '-',
+                            'mod_time'   => date('Y-m-d H:i:s', filemtime($realPath)),
                             'icon_class' => 'fa-level-up',
                             'sort'       => 0
                         );
@@ -621,12 +646,19 @@ class DirectoryLister {
 
                     // Add all non-hidden files to the array
                     if ($this->_directory != '.' || $file != 'index.php') {
-
+                        if (@array_key_exists($relativePath,$dllog)) {				
+                             $downloads = $dllog[$relativePath];
+                         }
+                         else {
+                             $downloads = '0';
+                         }
                         // Build the file path
                         $urlPath = implode('/', array_map('rawurlencode', explode('/', $relativePath)));
 
                         if (is_dir($relativePath)) {
-                            $urlPath = $this->containsIndex($relativePath) ? $relativePath : '?dir=' . $urlPath;
+                            $urlPath = '?dir=' . $urlPath;
+                        } else {
+                            $urlPath = $urlPath;
                         }
 
                         // Add the info to the main array
@@ -634,7 +666,8 @@ class DirectoryLister {
                             'file_path'  => $relativePath,
                             'url_path'   => $urlPath,
                             'file_size'  => is_dir($realPath) ? '-' : $this->getFileSize($realPath),
-                            'mod_time'   => date($this->_config['date_format'], filemtime($realPath)),
+                            'file_downloads' => is_dir($realPath) ? '-' : $downloads,
+                            'mod_time'   => date('Y-m-d H:i:s', filemtime($realPath)),
                             'icon_class' => $iconClass,
                             'sort'       => $sort
                         );
@@ -653,7 +686,35 @@ class DirectoryLister {
         return $sortedArray;
 
     }
-
+    // Function to read the downloads log file, and return an array as (filename => downloads)
+ 	private function _read_dLog() {
+ 		
+ 		// Declare Array for holding data read from log file
+ 		$name = array(); // array for file name
+ 		$count = array(); // array for file count
+ 		
+ 		$file = @file($this->_dLogFile);
+ 		if(empty($file))
+ 		{
+ 			return null;
+ 		}
+ 			
+ 		// Read the entire content of the downloads log file into the arrays 
+ 		$file = fopen($this->_dLogFile,"r");
+ 		while ($data = fscanf($file,"%[ -~]\t%d\n")) 
+ 		{
+ 			list ($temp1, $temp2) = $data;	
+ 			array_push($name,$temp1);
+ 			array_push($count,$temp2);
+ 		}
+ 		fclose($file);
+ 		// $file_list contains data read from the downloads log file as an array (filename => count)
+ 		$file_list=@array_combine($name,$count); 
+ 		ksort($file_list); // Sorting it in alphabetical order of key
+ 		
+ 		return $file_list;
+ 		
+ 	}
 
     /**
      * Sorts an array by the provided sort method.
@@ -807,11 +868,7 @@ class DirectoryLister {
         }
 
         // Get the server hostname
-        if (isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
-	        $host = $_SERVER['HTTP_X_FORWARDED_HOST'];
-	    } else {
-	        $host = $_SERVER['HTTP_HOST'];
-	    }
+        $host = $_SERVER['HTTP_HOST'];
 
         // Get the URL path
         $pathParts = pathinfo($_SERVER['PHP_SELF']);

@@ -1,4 +1,9 @@
 <?php
+     // Set the Extension from the Info File here
+     // To use it create a file in the same directory as your downloads with the same name as the file + your extension
+     // The Extension would be parsed as html so you can use html styles to style your text
+    // example: /dir1 => file1.zip create here a new file named file1.zip.txt (if you let default)
+    // The html / text from this file would be shown in info popup
 
 return array(
 
@@ -8,6 +13,7 @@ return array(
     'list_folders_first'        => true,
     'list_sort_order'           => 'natcasesort',
     'theme_name'                => 'bootstrap',
+    'infotext_extension'        => '.txt',
     'date_format'               => 'Y-m-d H:i:s', // See: http://php.net/manual/en/function.date.php
 
     // Hidden files
@@ -18,6 +24,8 @@ return array(
         'resources/*',
         'analytics.inc',
         'header.php',
+        '.txt',
+        '*/.txt',
         'footer.php'
     ),
 

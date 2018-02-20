@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-
+ <!DOCTYPE html>
 <html>
 
     <head>
@@ -8,17 +7,18 @@
         <link rel="shortcut icon" href="<?php echo THEMEPATH; ?>/img/folder.png">
 
         <!-- STYLES -->
-        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.7/yeti/bootstrap.min.css">
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
         <link rel="stylesheet" type="text/css" href="<?php echo THEMEPATH; ?>/css/style.css">
 
         <!-- SCRIPTS -->
+
         <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-        <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+        <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
         <script type="text/javascript" src="<?php echo THEMEPATH; ?>/js/directorylister.js"></script>
 
         <!-- FONTS -->
-        <link rel="stylesheet" type="text/css"  href="//fonts.googleapis.com/css?family=Cutive+Mono">
+        <link rel="stylesheet" type="text/css"  href="//fonts.googleapis.com/css?family=Roboto+Mono">
 
         <!-- META -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,11 +27,10 @@
         <?php file_exists('analytics.inc') ? include('analytics.inc') : false; ?>
 
     </head>
-
-    <body>
-
+    <body> 
         <div id="page-navbar" class="navbar navbar-default navbar-fixed-top">
             <div class="container">
+
 
                 <?php $breadcrumbs = $lister->listBreadcrumbs(); ?>
 
@@ -47,7 +46,10 @@
                 </p>
 
                 <div class="navbar-right">
-
+            <ul class="nav navbar-nav" id="sidebar">
+                <li><a href="https://www.sugar-camp.com">Blog</a></li>
+                <li><a href="https://www.dl-host.info/kontakt/kontakt/">Kontakt</a></li>
+            </ul>
                     <ul id="page-top-nav" class="nav navbar-nav">
                         <li>
                             <a href="javascript:void(0)" id="page-top-link">
@@ -86,21 +88,23 @@
 
             <div id="directory-list-header">
                 <div class="row">
-                    <div class="col-md-7 col-sm-6 col-xs-10">File</div>
+                    <div class="col-md-5 col-sm-6 col-xs-10">File</div>
                     <div class="col-md-2 col-sm-2 col-xs-2 text-right">Size</div>
+                    <div class="col-md-2 hidden-sm hidden-xs text-right">Downloads</div>
                     <div class="col-md-3 col-sm-4 hidden-xs text-right">Last Modified</div>
                 </div>
+
             </div>
 
             <ul id="directory-listing" class="nav nav-pills nav-stacked">
 
                 <?php foreach($dirArray as $name => $fileInfo): ?>
-                    <li data-name="<?php echo $name; ?>" data-href="<?php echo $fileInfo['url_path']; ?>">
-                        <a href="<?php echo $fileInfo['url_path']; ?>" class="clearfix" data-name="<?php echo $name; ?>">
+                    <li data-name="<?php echo $name; ?>" data-href="<?php echo $fileInfo['url_path']; ?>" data-info="<?php echo $fileInfo['url_path'],INFOTEXT; ?>">
+                        <a href="<?php if(is_dir($fileInfo['file_path'])) { echo $fileInfo['url_path']; } elseif($fileInfo['icon_class'] == 'fa-level-up') { echo  $fileInfo['file_path']; } else { echo 'filemanager.php?file='. $fileInfo['file_path']; } ?>" class="clearfix" data-name="<?php echo $name; ?>" data-info="<?php echo $fileInfo['url_path'],$infotext; ?>">
 
 
                             <div class="row">
-                                <span class="file-name col-md-7 col-sm-6 col-xs-9">
+                                <span class="file-name col-md-5 col-sm-6 col-xs-9">
                                     <i class="fa <?php echo $fileInfo['icon_class']; ?> fa-fw"></i>
                                     <?php echo $name; ?>
                                 </span>
@@ -108,7 +112,10 @@
                                 <span class="file-size col-md-2 col-sm-2 col-xs-3 text-right">
                                     <?php echo $fileInfo['file_size']; ?>
                                 </span>
-
+                                <span class="file-downloads col-md-2 hidden-sm hidden-xs text-right">
+                                     <?php echo $fileInfo['file_downloads']; ?></span>
+                                 </span>
+ 
                                 <span class="file-modified col-md-3 col-sm-4 hidden-xs text-right">
                                     <?php echo $fileInfo['mod_time']; ?>
                                 </span>
@@ -128,6 +135,7 @@
                 <?php endforeach; ?>
 
             </ul>
+	
         </div>
 
         <?php file_exists('footer.php') ? include('footer.php') : include($lister->getThemePath(true) . "/default_footer.php"); ?>
@@ -138,7 +146,7 @@
 
                     <div class="modal-header">
                         <button type="button" class="close" data-dismiss="modal">&times;</button>
-                        <h4 class="modal-title">{{modal_header}}</h4>
+                        <h2 class="modal-title">{{modal_header}}</h2>
                     </div>
 
                     <div class="modal-body">
@@ -149,12 +157,18 @@
                                 <tr>
                                     <td class="table-title">MD5</td>
                                     <td class="md5-hash">{{md5_sum}}</td>
+<td><a class="btn btn-default" data-toggle="tooltip" data-placement="top" title="copy" onclick="copyToClipboard('#select59');"><i class="fa fa-clipboard" aria-hidden="true"></i></a></td>
                                 </tr>
 
                                 <tr>
                                     <td class="table-title">SHA1</td>
                                     <td class="sha1-hash">{{sha1_sum}}</td>
+<td><a class="btn btn-default" data-toggle="tooltip" data-placement="top" title="copy" onclick="copyToClipboard('#sha1');"><i class="fa fa-clipboard" aria-hidden="true"></i></a></td>
                                 </tr>
+				<tr>
+				    <td class="table-title">INFO</td>
+				    <td class="info">{{info}}</td
+				</tr>
 
                             </tbody>
                         </table>
